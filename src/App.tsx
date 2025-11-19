@@ -1,16 +1,48 @@
+import { useState } from "react";
 import { usePlacesWidget } from "react-google-autocomplete";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Input } from '@/components/ui/input'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import './App.css'
 import { Label } from "./components/ui/label";
+import { MapboxMap } from "@/components/MapboxMap";
+
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+
 function App() {
+  const [mapViewState, setMapViewState] = useState({
+    longitude: -100.0,
+    latitude: 40.0,
+    zoom: 3.5
+  });
+  const [markerPosition, setMarkerPosition] = useState<{ longitude: number; latitude: number } | null>(null);
+
   const { ref } = usePlacesWidget({
     apiKey: API_KEY,
-    onPlaceSelected: (place) => console.log(place),
+    onPlaceSelected: (place) => {
+      console.log('Place selected:', place);
+
+      // Extract coordinates from the selected place
+      if (place.geometry?.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+
+        // Update map view to center on the selected location
+        setMapViewState({
+          longitude: lng,
+          latitude: lat,
+          zoom: 12
+        });
+
+        // Set marker at the selected location
+        setMarkerPosition({
+          longitude: lng,
+          latitude: lat
+        });
+      }
+    },
      options: {
-      types: ["(regions)"],
+      types: ["address"],
       componentRestrictions: { country: "us" },
     },
   })
@@ -48,11 +80,12 @@ function App() {
 
         {/* Center Panel */}
         <Panel defaultSize={50} minSize={30}>
-          <div className="h-full p-4 overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4">Center Panel</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              This is the center panel (~50% width)
-            </p>
+          <div className="h-full p-4">
+            <MapboxMap
+              viewState={mapViewState}
+              onMove={setMapViewState}
+              markerPosition={markerPosition}
+            />
           </div>
         </Panel>
 
