@@ -6,6 +6,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import './App.css'
 import { Label } from "./components/ui/label";
 import { MapboxMap } from "@/components/MapboxMap";
+import { AiCopilotPanel } from "@/components/AiCopilotPanel";
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
@@ -111,7 +112,7 @@ function App() {
         fetchPropertyBoundary(lat, lng);
       }
     },
-     options: {
+    options: {
       types: ["address"],
       componentRestrictions: { country: "us" },
     },
@@ -168,11 +169,11 @@ function App() {
 
         {/* Right Panel */}
         <Panel defaultSize={25} minSize={15} maxSize={40}>
-          <div className="h-full border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
-            <h2 className="text-lg font-semibold mb-4">Right Panel</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              This is the right panel (~25% width)
-            </p>
+          <div className="h-full min-h-0 overflow-y-auto border-l border-gray-200 dark:border-gray-700 p-4 flex flex-col space-y-4">
+            <AiCopilotPanel
+              markerPosition={markerPosition}
+              propertyGeoJson={propertyGeoJson}
+            />
           </div>
         </Panel>
       </PanelGroup>
