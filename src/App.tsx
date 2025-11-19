@@ -16,6 +16,73 @@ function App() {
     zoom: 3.5
   });
   const [markerPosition, setMarkerPosition] = useState<{ longitude: number; latitude: number } | null>(null);
+  const [propertyGeoJson, setPropertyGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
+
+  // Function to fetch property boundary from NYC Planning Labs GeoSearch API
+  const fetchPropertyBoundary = async (lat: number, lng: number) => {
+    try {
+      // NYC Planning Labs GeoSearch API - returns property (tax lot) information
+      // This API provides BBL (Borough-Block-Lot) and geometry data
+      // Using reverse geocoding endpoint with point.lat and point.lon
+      const response = await fetch(
+        `https://geosearch.planninglabs.nyc/v2/reverse?point.lat=${lat}&point.lon=${lng}&size=1`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('GeoSearch response:', data);
+
+        if (data.features && data.features.length > 0) {
+          const feature = data.features[0];
+
+          // The GeoSearch API returns a point, but we need the lot polygon
+          // Use the BBL to fetch the actual lot geometry
+          if (feature.properties && feature.properties.addendum && feature.properties.addendum.pad) {
+            const bbl = feature.properties.addendum.pad.bbl;
+            console.log('Found BBL:', bbl);
+
+            // Fetch lot geometry from NYC Planning's lot data
+            await fetchLotGeometry(bbl);
+          } else {
+            console.log('No BBL found for this location');
+            setPropertyGeoJson(null);
+          }
+        } else {
+          console.log('No property found at this location');
+          setPropertyGeoJson(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching property boundary:', error);
+      setPropertyGeoJson(null);
+    }
+  };
+
+  // Function to fetch lot geometry using BBL
+  const fetchLotGeometry = async (bbl: string) => {
+    try {
+      // Use NYC Planning's vector tiles or WFS service
+      // For now, we'll use a simple approach with the tax lot centroid data
+      const response = await fetch(
+        `https://services5.arcgis.com/GfwWNkhOj9bNBqoJ/arcgis/rest/services/MAPPLUTO/FeatureServer/0/query?where=BBL='${bbl}'&outFields=*&outSR=4326&f=geojson`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Lot geometry:', data);
+
+        if (data.features && data.features.length > 0) {
+          setPropertyGeoJson(data);
+        } else {
+          console.log('No geometry found for BBL:', bbl);
+          setPropertyGeoJson(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching lot geometry:', error);
+      setPropertyGeoJson(null);
+    }
+  };
 
   const { ref } = usePlacesWidget({
     apiKey: API_KEY,
@@ -31,7 +98,7 @@ function App() {
         setMapViewState({
           longitude: lng,
           latitude: lat,
-          zoom: 12
+          zoom: 18 // Zoom in closer to see property boundaries
         });
 
         // Set marker at the selected location
@@ -39,6 +106,9 @@ function App() {
           longitude: lng,
           latitude: lat
         });
+
+        // Fetch property boundary
+        fetchPropertyBoundary(lat, lng);
       }
     },
      options: {
@@ -85,6 +155,11 @@ function App() {
               viewState={mapViewState}
               onMove={setMapViewState}
               markerPosition={markerPosition}
+              geojsonData={propertyGeoJson}
+              fillColor="#3B82F6"
+              fillOpacity={0.3}
+              strokeColor="#1D4ED8"
+              strokeWidth={3}
             />
           </div>
         </Panel>

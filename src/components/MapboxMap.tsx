@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import Map, { type MapRef, Marker, NavigationControl, GeolocateControl } from 'react-map-gl/mapbox';
+import Map, { type MapRef, Marker, NavigationControl, GeolocateControl, Source, Layer } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -14,6 +14,11 @@ interface MapboxMapProps {
   viewState?: ViewState;
   onMove?: (viewState: ViewState) => void;
   markerPosition?: { longitude: number; latitude: number } | null;
+  geojsonData?: GeoJSON.FeatureCollection | GeoJSON.Feature | null;
+  fillColor?: string;
+  fillOpacity?: number;
+  strokeColor?: string;
+  strokeWidth?: number;
   height?: string;
   width?: string;
   className?: string;
@@ -23,6 +28,11 @@ export function MapboxMap({
   viewState,
   onMove,
   markerPosition: externalMarkerPosition,
+  geojsonData,
+  fillColor = '#088',
+  fillOpacity = 0.4,
+  strokeColor = '#088',
+  strokeWidth = 2,
   height = '100%',
   width = '100%',
   className = ''
@@ -99,6 +109,41 @@ export function MapboxMap({
           trackUserLocation
           showUserHeading
         />
+
+        {/* GeoJSON data layer */}
+        {geojsonData && (
+          <Source id="geojson-data" type="geojson" data={geojsonData}>
+            {/* Fill layer for polygons */}
+            <Layer
+              id="geojson-fill"
+              type="fill"
+              paint={{
+                'fill-color': fillColor,
+                'fill-opacity': fillOpacity
+              }}
+            />
+            {/* Line layer for polygon borders and LineStrings */}
+            <Layer
+              id="geojson-line"
+              type="line"
+              paint={{
+                'line-color': strokeColor,
+                'line-width': strokeWidth
+              }}
+            />
+            {/* Circle layer for points */}
+            <Layer
+              id="geojson-point"
+              type="circle"
+              paint={{
+                'circle-radius': 6,
+                'circle-color': strokeColor,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#fff'
+              }}
+            />
+          </Source>
+        )}
 
         {/* Marker at selected/clicked location */}
         {displayMarker && (
